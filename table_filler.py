@@ -48,8 +48,6 @@ def _parse_posology_code(code: str) -> tuple[str, str, str]:
             continue
         if val == 0:
             result.append("")
-        elif val == 1:
-            result.append("X")
         else:
             result.append(str(val))
     return (result[0], result[1], result[2])
@@ -69,18 +67,18 @@ def _timing_to_slots(timing: Optional[str]) -> tuple[str, str, str]:
         for part in parts:
             part = part.strip()
             if _is_morning(part):
-                morning = "X"
+                morning = "1"
             elif _is_lunch(part):
-                lunch = "X"
+                lunch = "1"
             elif _is_night(part):
-                night = "X"
+                night = "1"
     else:
         if _is_morning(t):
-            morning = "X"
+            morning = "1"
         elif _is_lunch(t):
-            lunch = "X"
+            lunch = "1"
         elif _is_night(t):
-            night = "X"
+            night = "1"
 
     return (morning, lunch, night)
 
@@ -106,30 +104,30 @@ def _frequency_to_slots(frequency: Optional[str]) -> tuple[str, str, str]:
 
     # 8/8h or de 8 em 8 horas → 3x/day
     if re.search(r"8\s*/\s*8|de\s+8\s+em\s+8", f):
-        return ("X", "X", "X")
+        return ("1", "1", "1")
 
     # 12/12h or de 12 em 12 horas → 2x/day (morning + night)
     if re.search(r"12\s*/\s*12|de\s+12\s+em\s+12", f):
-        return ("X", "", "X")
+        return ("1", "", "1")
 
     # 6/6h → 4x/day — mark all three
     if re.search(r"6\s*/\s*6|de\s+6\s+em\s+6", f):
-        return ("X", "X", "X")
+        return ("1", "1", "1")
 
     # "3 vezes" or "3x" → all three
     m = re.search(r"(\d+)\s*(?:vezes|x)", f)
     if m:
         n = int(m.group(1))
         if n >= 3:
-            return ("X", "X", "X")
+            return ("1", "1", "1")
         elif n == 2:
-            return ("X", "", "X")
+            return ("1", "", "1")
         elif n == 1:
-            return ("X", "", "")
+            return ("1", "", "")
 
     # "1 vez ao dia" → morning by default
     if re.search(r"1\s*vez\s*(?:ao|por|no)\s*dia", f):
-        return ("X", "", "")
+        return ("1", "", "")
 
     return ("", "", "")
 
@@ -143,7 +141,7 @@ def get_time_slots(med: ParsedMedication) -> tuple[str, str, str]:
     # 1. Posology code is most explicit
     if med.posology_code:
         slots = _parse_posology_code(med.posology_code)
-        # Replace generic "X" with quantity_per_dose if available
+        # Replace numeric count with quantity_per_dose if available (e.g. "1cp")
         if med.quantity_per_dose:
             qty = med.quantity_per_dose
             slots = tuple(qty if s and s != "" else "" for s in slots)
@@ -168,7 +166,7 @@ def get_time_slots(med: ParsedMedication) -> tuple[str, str, str]:
             return slots
 
     # 4. No timing info at all — put X in morning as default for 1x/day meds
-    return ("X", "", "")
+    return ("1", "", "")
 
 
 # ---------------------------------------------------------------------------
